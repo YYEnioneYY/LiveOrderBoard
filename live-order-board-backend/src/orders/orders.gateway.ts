@@ -79,4 +79,27 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
       order,
     );
   }
+
+  @SubscribeMessage('order:delete')
+  handleDeleteOrder(
+    @MessageBody()
+    data: { orderId: number },
+  ) {
+    const order = this.orders.find(
+      (order) => order.id === data.orderId,
+    );
+
+    if (!order) {
+      return
+    };
+
+    this.orders = this.orders.filter(order => order.id !== data.orderId);
+
+    this.server.emit(
+      'order:deleted',
+      {
+        orderId: data.orderId,
+      }
+    );
+  }
 }

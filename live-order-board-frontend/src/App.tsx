@@ -27,8 +27,6 @@ function App() {
     };
 
     const handleOrderCreated = (order: Order) => {
-      console.log('Order created:', order);
-
       setOrders((currentOrders) => [
         ...currentOrders,
         order,
@@ -45,16 +43,26 @@ function App() {
       );
     };
 
+    const handleOrderDeleted = (data: { orderId: number }) => {
+      setOrders((currentOrders) =>
+        currentOrders.filter((order) =>
+          order.id !== data.orderId
+        ),
+      );
+    };
+
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('order:created', handleOrderCreated);
     socket.on('order:updated', handleOrderUpdated);
+    socket.on('order:deleted', handleOrderDeleted);
 
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('order:created', handleOrderCreated);
       socket.off('order:updated', handleOrderUpdated);
+      socket.off('order:deleted', handleOrderDeleted);
     };
   }, []);
 
@@ -127,8 +135,20 @@ function App() {
               DONE
             </option>
           </select>
+          <p></p>
+          <button
+            onClick={() => {
+              socket.emit(
+                'order:delete',
+                { orderId: order.id }
+              );
+            }}
+          >
+            Удалить
+          </button>
       
           <hr />
+          
         </div>
       ))}
     </div>
