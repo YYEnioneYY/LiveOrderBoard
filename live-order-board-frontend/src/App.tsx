@@ -21,6 +21,7 @@ function App() {
     const handleConnect = () => {
       console.log('Connected:', socket.id);
       setConnected(true);
+      socket.emit('orders:get-all');
     };
 
     const handleDisconnect = () => {
@@ -57,12 +58,17 @@ function App() {
       );
     };
 
+    const handleOrdersList = (orders: Order[]) => {
+      setOrders(orders);
+    };
+
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('order:created', handleOrderCreated);
     socket.on('order:updated', handleOrderUpdated);
     socket.on('order:deleted', handleOrderDeleted);
-    socket.on('users.online', handleUsersOnline);
+    socket.on('users:online', handleUsersOnline);
+    socket.on('orders:list', handleOrdersList);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -70,7 +76,8 @@ function App() {
       socket.off('order:created', handleOrderCreated);
       socket.off('order:updated', handleOrderUpdated);
       socket.off('order:deleted', handleOrderDeleted);
-      socket.off('users.online', handleUsersOnline);
+      socket.off('users:online', handleUsersOnline);
+      socket.off('orders:list', handleOrdersList);
     };
   }, []);
 

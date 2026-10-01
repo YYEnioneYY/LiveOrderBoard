@@ -33,7 +33,7 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.connectedUsers++;
 
     this.server.emit(
-      'users.online',
+      'users:online',
       { count: this.connectedUsers },
     )
   }
@@ -46,7 +46,7 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
 
     this.server.emit(
-      'users.online',
+      'users:online',
       { count: this.connectedUsers }
     )
   }
@@ -120,5 +120,15 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
         orderId: data.orderId,
       }
     );
+  }
+
+  @SubscribeMessage('orders:get-all')
+  handleGetAllOrders(
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.emit(
+      'orders:list',
+      this.orders,
+    )
   }
 }
