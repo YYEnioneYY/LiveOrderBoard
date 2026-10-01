@@ -15,6 +15,8 @@ function App() {
 
   const [orders, setOrders] = useState<Order[]>([]);
 
+  const [onlineUsers, setOnlineUsers] = useState(0);
+
   useEffect(() => {
     const handleConnect = () => {
       console.log('Connected:', socket.id);
@@ -24,6 +26,10 @@ function App() {
     const handleDisconnect = () => {
       console.log('Disconnected');
       setConnected(false);
+    };
+
+    const handleUsersOnline = (data: { count: number }) => {
+      setOnlineUsers(data.count);
     };
 
     const handleOrderCreated = (order: Order) => {
@@ -56,6 +62,7 @@ function App() {
     socket.on('order:created', handleOrderCreated);
     socket.on('order:updated', handleOrderUpdated);
     socket.on('order:deleted', handleOrderDeleted);
+    socket.on('users.online', handleUsersOnline);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -63,6 +70,7 @@ function App() {
       socket.off('order:created', handleOrderCreated);
       socket.off('order:updated', handleOrderUpdated);
       socket.off('order:deleted', handleOrderDeleted);
+      socket.off('users.online', handleUsersOnline);
     };
   }, []);
 
@@ -84,6 +92,10 @@ function App() {
   return (
     <div style={{ padding: 40 }}>
       <h1>Live Order Board</h1>
+
+      <p>
+        Online users: {onlineUsers}
+      </p>
 
       <p>
         WebSocket: {connected ? '🟢 connected' : '🔴 disconnected'}

@@ -19,18 +19,37 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
-  handleConnection(client: Socket) {
-    console.log('Client connected:', client.id)
-  }
-  handleDisconnect(client: Socket) {
-    console.log('Client disconnected:', client.id)
-  }
-
   private orders: {
     id: number;
     title: string;
     status: string;
   }[] = [];
+
+  private connectedUsers = 0;
+
+  handleConnection(client: Socket) {
+    console.log('Client connected:', client.id)
+
+    this.connectedUsers++;
+
+    this.server.emit(
+      'users.online',
+      { count: this.connectedUsers },
+    )
+  }
+  handleDisconnect(client: Socket) {
+    console.log('Client disconnected:', client.id)
+
+    this.connectedUsers = Math.max(
+      0,
+      this.connectedUsers - 1,
+    );
+
+    this.server.emit(
+      'users.online',
+      { count: this.connectedUsers }
+    )
+  }
 
   @SubscribeMessage('order:create')
   handleCreateOrder(
