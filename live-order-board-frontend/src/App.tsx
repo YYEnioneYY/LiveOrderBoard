@@ -17,6 +17,8 @@ function App() {
 
   const [onlineUsers, setOnlineUsers] = useState(0);
 
+  const [openedOrderId, setOpenedOrderId] = useState<number | null>(null);
+
   useEffect(() => {
     const handleConnect = () => {
       console.log('Connected:', socket.id);
@@ -165,6 +167,40 @@ function App() {
           >
             Удалить
           </button>
+
+          <button
+            onClick={() => {
+              socket.emit(
+                'order:join',
+                {
+                  orderId: order.id,
+                },
+              );
+            
+              setOpenedOrderId(order.id);
+            }}
+          >
+            Открыть
+          </button>
+
+          <button
+            onClick={() => {
+              socket.emit(
+                'order:leave',
+                {
+                  orderId: order.id,
+                },
+              );
+            
+              setOpenedOrderId(null);
+            }}
+          >
+            Закрыть
+          </button>
+
+          {openedOrderId === order.id && (
+            <p>Вы смотрите этот заказ</p>
+          )}
       
           <hr />
           

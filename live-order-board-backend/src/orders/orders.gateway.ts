@@ -131,4 +131,38 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.orders,
     )
   }
+
+  @SubscribeMessage('order:join')
+  handleJoinOrder(
+    @MessageBody()
+    data: { orderId: number },
+
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    const roomName = `order:${data.orderId}`;
+
+    client.join(roomName);
+
+    console.log(
+      `${client.id} joined ${roomName}`,
+    );
+  }
+
+  @SubscribeMessage('order:leave')
+  handleLeaveOrder(
+    @MessageBody()
+    data: { orderId: number },
+  
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    const roomName = `order:${data.orderId}`;
+  
+    client.leave(roomName);
+  
+    console.log(
+      `${client.id} left ${roomName}`,
+    );
+  }
 }
