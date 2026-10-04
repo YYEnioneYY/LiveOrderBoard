@@ -156,11 +156,21 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.join(roomName);
 
-    const messages = this.messages.filter(message => message.orderId === data.orderId);
+    const room = this.server.sockets.adapter.rooms.get(roomName);
 
-    console.log(
-      `${client.id} joined ${roomName}`,
-    );
+    const count = room?.size ?? 0;
+
+    this.server
+      .to(roomName)
+      .emit(
+        'order:viewers',
+        {
+          orderId: data.orderId,
+          count,
+        }
+      );
+
+    const messages = this.messages.filter((message) => message.orderId === data.orderId);
 
     client.emit(
       'order:messages:list',
@@ -180,9 +190,19 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.leave(roomName);
 
-    console.log(
-      `${client.id} left ${roomName}`,
-    );
+    const room = this.server.sockets.adapter.rooms.get(roomName);
+    
+    const count = room?.size ?? 0;
+    
+    this.server
+      .to(roomName)
+      .emit(
+        'order:viewers',
+        {
+          orderId: data.orderId,
+          count,
+        },
+      );
   }
 
   @SubscribeMessage('order:message:send')

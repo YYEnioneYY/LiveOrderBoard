@@ -28,6 +28,8 @@ function App() {
 
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [messageText, setMessageText] = useState('');
+  
+  const [viewersByOrder, setViewersByOrder] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const handleConnect = () => {
@@ -89,6 +91,18 @@ function App() {
       setMessages(messages);
     };
 
+    const handleOrderViewers = (
+      data: {
+        orderId: number;
+        count: number;
+      },
+    ) => {
+      setViewersByOrder((current) => ({
+        ...current,
+        [data.orderId]: data.count,
+      }));
+    };
+
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('order:created', handleOrderCreated);
@@ -98,6 +112,7 @@ function App() {
     socket.on('orders:list', handleOrdersList);
     socket.on('order:message:created', handleMessageCreated);
     socket.on('order:messages:list', handleMessagesList);
+    socket.on('order:viewers', handleOrderViewers);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -109,6 +124,7 @@ function App() {
       socket.off('orders:list', handleOrdersList);
       socket.off('order:message:created', handleMessageCreated);
       socket.off('order:messages:list', handleMessagesList);
+      socket.off('order:viewers', handleOrderViewers);
     };
   }, []);
 
@@ -160,7 +176,7 @@ function App() {
           <p>
             {order.title}
           </p>
-      
+          
           <select
             value={order.status}
             onChange={(e) => {
@@ -238,6 +254,10 @@ function App() {
 
       {openedOrderId !== null && (
         <div>
+          <p>
+            Сейчас смотрят:{' '}
+            {viewersByOrder[openedOrderId] ?? 0}
+          </p>
           <h2>
             Сообщения заказа #{openedOrderId}
           </h2>
