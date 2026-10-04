@@ -9,6 +9,13 @@ type Order = {
   status: string;
 };
 
+type OrderMessage = {
+  id: number;
+  orderId: number;
+  text: string;
+  createdAt: string;
+};
+
 function App() {
   const [connected, setConnected] = useState(false);
   const [title, setTitle] = useState('');
@@ -18,6 +25,9 @@ function App() {
   const [onlineUsers, setOnlineUsers] = useState(0);
 
   const [openedOrderId, setOpenedOrderId] = useState<number | null>(null);
+
+  const [messages, setMessages] = useState<OrderMessage[]>([]);
+  const [messageText, setMessageText] = useState('');
 
   useEffect(() => {
     const handleConnect = () => {
@@ -64,6 +74,21 @@ function App() {
       setOrders(orders);
     };
 
+    const handleMessageCreated = (
+      message: OrderMessage,
+    ) => {
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        message,
+      ]);
+    };
+
+    const handleMessagesList = (
+      messages: OrderMessage[],
+    ) => {
+      setMessages(messages);
+    };
+
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('order:created', handleOrderCreated);
@@ -71,6 +96,8 @@ function App() {
     socket.on('order:deleted', handleOrderDeleted);
     socket.on('users:online', handleUsersOnline);
     socket.on('orders:list', handleOrdersList);
+    socket.on('order:message:created', handleMessageCreated);
+    socket.on('order:messages:list', handleMessagesList);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -80,6 +107,8 @@ function App() {
       socket.off('order:deleted', handleOrderDeleted);
       socket.off('users:online', handleUsersOnline);
       socket.off('orders:list', handleOrdersList);
+      socket.off('order:message:created', handleMessageCreated);
+      socket.off('order:messages:list', handleMessagesList);
     };
   }, []);
 
@@ -206,6 +235,59 @@ function App() {
           
         </div>
       ))}
+
+      {openedOrderId !== null && (
+        <div>
+          <h2>
+            Сообщения заказа #{openedOrderId}
+          </h2>
+
+          <input
+            value={messageText}
+            onChange={(e) =>
+              setMessageText(e.target.value)
+            }
+            placeholder="Введите сообщение"
+          />
+
+          <button
+            onClick={() => {
+              if (!messageText.trim()) {
+                return;
+              }
+            
+              socket.emit(
+                'order:message:send',
+                {
+                  orderId: openedOrderId,
+                  text: messageText.trim(),
+                },
+              );
+            
+              setMessageText('');
+            }}
+          >
+            Отправить
+          </button>
+        </div>
+      )}
+
+      {messages
+        .filter(
+          (message) =>
+            message.orderId === openedOrderId,
+        )
+        .map((message) => (
+          <div key={message.id}>
+            <p>{message.text}</p>
+        
+            <small>
+              {new Date(
+                message.createdAt,
+              ).toLocaleTimeString()}
+            </small>
+          </div>
+        ))}
     </div>
   );
 }

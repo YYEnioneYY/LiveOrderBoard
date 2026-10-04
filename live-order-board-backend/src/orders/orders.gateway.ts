@@ -10,6 +10,19 @@ import {
 
 import { Socket, Server } from 'socket.io'
 
+type Order = {
+  id: number;
+  title: string;
+  status: string;
+}
+
+type OrderMessage = {
+  id: number;
+  orderId: number;
+  text: string;
+  createdAt: Date;
+};
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -19,11 +32,9 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
-  private orders: {
-    id: number;
-    title: string;
-    status: string;
-  }[] = [];
+  private orders: Order[] = [];
+
+  private messages: OrderMessage[] = [];
 
   private connectedUsers = 0;
 
@@ -37,6 +48,7 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
       { count: this.connectedUsers },
     )
   }
+
   handleDisconnect(client: Socket) {
     console.log('Client disconnected:', client.id)
 
@@ -144,8 +156,15 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.join(roomName);
 
+    const messages = this.messages.filter(message => message.orderId === data.orderId);
+
     console.log(
       `${client.id} joined ${roomName}`,
+    );
+
+    client.emit(
+      'order:messages:list',
+      messages,
     );
   }
 
@@ -153,16 +172,51 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleLeaveOrder(
     @MessageBody()
     data: { orderId: number },
-  
+
     @ConnectedSocket()
     client: Socket,
   ) {
     const roomName = `order:${data.orderId}`;
-  
+
     client.leave(roomName);
-  
+
     console.log(
       `${client.id} left ${roomName}`,
     );
+  }
+
+  @SubscribeMessage('order:message:send')
+  handleSendMessage(
+    @MessageBody()
+    data: {
+      orderId: number;
+      text: string;
+    },
+  ) {
+    const order = this.orders.find(
+      (order) => order.id === data.orderId,
+    );
+
+    if (!order) {
+      return;
+    }
+
+    const message: OrderMessage = {
+      id: Date.now(),
+      orderId: data.orderId,
+      text: data.text,
+      createdAt: new Date(),
+    };
+
+    this.messages.push(message);
+
+    const roomName = `order:${data.orderId}`;
+
+    this.server
+      .to(roomName)
+      .emit(
+        'order:message:created',
+        message,
+      );
   }
 }
