@@ -45,6 +45,13 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.connectedUsers++;
 
+    const defaultName = `User-${client.id.slice(0, 5)}`;
+
+    this.users.set(
+      client.id,
+      defaultName,
+    );
+
     this.server.emit(
       'users:online',
       { count: this.connectedUsers },
@@ -256,10 +263,6 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const userName = this.users.get(client.id);
 
-    if (!userName) {
-      return;
-    }
-
     client
       .to(roomName)
       .emit(
@@ -283,10 +286,6 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomName = `order:${data.orderId}`;
 
     const userName = this.users.get(client.id);
-
-    if (!userName) {
-      return;
-    }
 
     client
       .to(roomName)
