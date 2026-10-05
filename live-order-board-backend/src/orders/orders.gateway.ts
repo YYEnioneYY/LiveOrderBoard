@@ -38,6 +38,8 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private connectedUsers = 0;
 
+  private users = new Map<string, string>();
+
   handleConnection(client: Socket) {
     console.log('Client connected:', client.id)
 
@@ -56,6 +58,8 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
       0,
       this.connectedUsers - 1,
     );
+
+    this.users.delete(client.id);
 
     this.server.emit(
       'users:online',
@@ -250,12 +254,19 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const roomName = `order:${data.orderId}`;
 
+    const userName = this.users.get(client.id);
+
+    if (!userName) {
+      return;
+    }
+
     client
       .to(roomName)
       .emit(
         'order:typing',
         {
           orderId: data.orderId,
+          userName,
           isTyping: true,
         }
       )
@@ -271,14 +282,41 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const roomName = `order:${data.orderId}`;
 
+    const userName = this.users.get(client.id);
+
+    if (!userName) {
+      return;
+    }
+
     client
       .to(roomName)
       .emit(
         'order:typing',
         {
           orderId: data.orderId,
+          userName,
           isTyping: false,
         }
       )
+  }
+
+  @SubscribeMessage('user:set-name')
+  handleSetName(
+    @MessageBody()
+    data: { name: string },
+
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    const name = data.name.trim();
+
+    if (!name) {
+      return
+    }
+
+    this.users.set(
+      client.id,
+      name,
+    );
   }
 }

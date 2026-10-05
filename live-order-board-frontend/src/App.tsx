@@ -31,8 +31,11 @@ function App() {
   
   const [viewersByOrder, setViewersByOrder] = useState<Record<number, number>>({});
 
-  const [typingByOrder, setTypingByOrder] = useState<Record<number, boolean>>({});
+  const [typingByOrder, setTypingByOrder] = useState<Record<number, string | null>>({});
   const typingTimeoutRef = useRef<number | null>(null);
+
+  const [name, setName] = useState('');
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -109,12 +112,13 @@ function App() {
     const handleTyping = (
       data: {
         orderId: number;
+        userName: string;
         isTyping: boolean;
       },
     ) => {
       setTypingByOrder((current) => ({
         ...current,
-        [data.orderId]: data.isTyping,
+        [data.orderId]: data.isTyping ? data.userName : null,
       }));
     };
 
@@ -163,6 +167,45 @@ function App() {
   return (
     <div style={{ padding: 40 }}>
       <h1>Live Order Board</h1>
+
+      {currentUserName === null && (
+        <div>
+          <input
+            value={name}
+            onChange={(e) =>
+              setName(e.target.value)
+            }
+            placeholder="Ваше имя"
+          />
+
+          <button
+            onClick={() => {
+              const trimmedName = name.trim();
+            
+              if (!trimmedName) {
+                return;
+              }
+            
+              socket.emit(
+                'user:set-name',
+                {
+                  name: trimmedName,
+                },
+              );
+            
+              setCurrentUserName(trimmedName);
+            }}
+          >
+            Сохранить имя
+          </button>
+        </div>
+      )}
+
+      {currentUserName !== null && (
+        <p>
+          Вы: {currentUserName}
+        </p>
+      )}
 
       <p>
         Online users: {onlineUsers}
@@ -280,7 +323,7 @@ function App() {
           </h2>
 
           {typingByOrder[openedOrderId] && (
-            <p>Пользователь печатает...</p>
+            <p>{typingByOrder[openedOrderId]} печатает...</p>
           )}
 
           <input
