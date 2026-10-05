@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:3000');
@@ -30,6 +30,9 @@ function App() {
   const [messageText, setMessageText] = useState('');
   
   const [viewersByOrder, setViewersByOrder] = useState<Record<number, number>>({});
+
+  const [typingByOrder, setTypingByOrder] = useState<Record<number, boolean>>({});
+  const typingTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -103,6 +106,18 @@ function App() {
       }));
     };
 
+    const handleTyping = (
+      data: {
+        orderId: number;
+        isTyping: boolean;
+      },
+    ) => {
+      setTypingByOrder((current) => ({
+        ...current,
+        [data.orderId]: data.isTyping,
+      }));
+    };
+
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('order:created', handleOrderCreated);
@@ -113,6 +128,7 @@ function App() {
     socket.on('order:message:created', handleMessageCreated);
     socket.on('order:messages:list', handleMessagesList);
     socket.on('order:viewers', handleOrderViewers);
+    socket.on('order:typing', handleTyping);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -125,6 +141,7 @@ function App() {
       socket.off('order:message:created', handleMessageCreated);
       socket.off('order:messages:list', handleMessagesList);
       socket.off('order:viewers', handleOrderViewers);
+      socket.off('order:typing', handleTyping);
     };
   }, []);
 
@@ -262,11 +279,37 @@ function App() {
             Сообщения заказа #{openedOrderId}
           </h2>
 
+          {typingByOrder[openedOrderId] && (
+            <p>Пользователь печатает...</p>
+          )}
+
           <input
             value={messageText}
-            onChange={(e) =>
-              setMessageText(e.target.value)
-            }
+            onChange={(e) => {
+              const value = e.target.value;
+                        
+              setMessageText(value);
+                        
+              socket.emit(
+                'order:typing:start',
+                {
+                  orderId: openedOrderId,
+                },
+              );
+            
+              if (typingTimeoutRef.current !== null) {
+                clearTimeout(typingTimeoutRef.current);
+              }
+            
+              typingTimeoutRef.current = window.setTimeout(() => {
+                socket.emit(
+                  'order:typing:stop',
+                  {
+                    orderId: openedOrderId,
+                  },
+                );
+              }, 1000);
+            }}
             placeholder="Введите сообщение"
           />
 
@@ -281,6 +324,13 @@ function App() {
                 {
                   orderId: openedOrderId,
                   text: messageText.trim(),
+                },
+              );
+
+              socket.emit(
+                'order:typing:stop',
+                {
+                  orderId: openedOrderId,
                 },
               );
             

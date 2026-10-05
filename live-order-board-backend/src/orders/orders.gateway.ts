@@ -239,4 +239,46 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
         message,
       );
   }
+
+  @SubscribeMessage('order:typing:start')
+  handleTypingStart(
+    @MessageBody()
+    data: { orderId: number; },
+
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    const roomName = `order:${data.orderId}`;
+
+    client
+      .to(roomName)
+      .emit(
+        'order:typing',
+        {
+          orderId: data.orderId,
+          isTyping: true,
+        }
+      )
+  }
+
+  @SubscribeMessage('order:typing:stop')
+  handleTypingStop(
+    @MessageBody()
+    data: { orderId: number; },
+
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    const roomName = `order:${data.orderId}`;
+
+    client
+      .to(roomName)
+      .emit(
+        'order:typing',
+        {
+          orderId: data.orderId,
+          isTyping: false,
+        }
+      )
+  }
 }
